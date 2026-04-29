@@ -266,6 +266,8 @@ async def run(config: LoadConfig) -> int:
     headers = {}
     if config.token:
         headers["Authorization"] = f"Bearer {config.token}"
+    headers["X-Self-ID"] = str(config.self_id)
+    headers["X-Client-Role"] = "Universal"
 
     timeout = aiohttp.ClientTimeout(total=None, sock_connect=DEFAULT_TIMEOUT_SECONDS)
     async with aiohttp.ClientSession(headers=headers, timeout=timeout) as session:

@@ -4,6 +4,9 @@ This tool simulates a NapCat / aiocqhttp reverse WebSocket client that connects
 to AstrBot, sends OneBot v11 group message and notice payloads, and responds to
 OneBot action requests from AstrBot.
 
+The client connects as a OneBot reverse WebSocket universal client with
+`X-Client-Role: Universal` and `X-Self-ID` headers.
+
 It is a development load-test tool. It is not part of either plugin runtime and
 should not be bundled into plugin release packages.
 
