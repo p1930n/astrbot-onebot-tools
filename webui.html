@@ -381,6 +381,73 @@
       white-space: nowrap;
     }
 
+    .logs-list {
+      display: grid;
+      gap: 6px;
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    .log-entry {
+      display: grid;
+      grid-template-columns: auto auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .log-entry:last-child {
+      border-bottom: 0;
+    }
+
+    .log-time {
+      color: var(--muted);
+      font-family: Consolas, "SFMono-Regular", "Liberation Mono", monospace;
+      white-space: nowrap;
+    }
+
+    .log-level {
+      min-width: 44px;
+      padding: 1px 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface-strong);
+      color: #344054;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.5;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .log-level.error {
+      border-color: #f0a7a7;
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    .log-level.warning,
+    .log-level.warn {
+      border-color: #efc066;
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .log-level.info {
+      border-color: #a9c7f5;
+      background: #eef5ff;
+      color: var(--primary-strong);
+    }
+
+    .log-message {
+      min-width: 0;
+      color: var(--text);
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
     @media (max-width: 1040px) {
       .layout {
         grid-template-columns: 1fr;
@@ -424,6 +491,15 @@
 
       .kv-row {
         grid-template-columns: 1fr;
+      }
+
+      .log-entry {
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+
+      .log-level {
+        width: max-content;
       }
     }
   </style>
@@ -519,42 +595,52 @@
                 <label>
                   rate
                   <input id="rate" name="rate" type="number" min="0" step="0.1" value="0" required>
+                  <span class="hint">每秒持续发送事件数，count 为 0 时常用。</span>
                 </label>
                 <label>
                   duration
                   <input id="duration" name="duration" type="number" min="0" step="0.1" value="0" required>
+                  <span class="hint">持续发送时长，0 表示不按时长停止。</span>
                 </label>
                 <label>
                   groups
                   <input id="groups" name="groups" type="number" min="1" step="1" value="3" required>
+                  <span class="hint">未指定 QQ 群时的模拟群池数量。</span>
                 </label>
                 <label>
                   users
                   <input id="users" name="users" type="number" min="1" step="1" value="50" required>
+                  <span class="hint">未指定 QQ 时的每群模拟用户数量。</span>
                 </label>
                 <label>
                   bad_ratio
                   <input id="bad_ratio" name="bad_ratio" type="number" min="0" max="1" step="0.01" value="0.03" required>
+                  <span class="hint">发送内容替换为坏消息的概率。</span>
                 </label>
                 <label>
                   notice_ratio
                   <input id="notice_ratio" name="notice_ratio" type="number" min="0" max="1" step="0.01" value="0.01" required>
+                  <span class="hint">发送 notice 事件的概率。</span>
                 </label>
                 <label>
                   slow_action_ratio
                   <input id="slow_action_ratio" name="slow_action_ratio" type="number" min="0" max="1" step="0.01" value="0" required>
+                  <span class="hint">响应 AstrBot action 前延迟的概率。</span>
                 </label>
                 <label>
                   fail_action_ratio
                   <input id="fail_action_ratio" name="fail_action_ratio" type="number" min="0" max="1" step="0.01" value="0" required>
+                  <span class="hint">返回失败 action 响应的概率。</span>
                 </label>
                 <label>
                   action_timeout_ratio
                   <input id="action_timeout_ratio" name="action_timeout_ratio" type="number" min="0" max="1" step="0.01" value="0" required>
+                  <span class="hint">丢弃 action 响应模拟超时的概率。</span>
                 </label>
                 <label>
                   slow_action_delay
                   <input id="slow_action_delay" name="slow_action_delay" type="number" min="0" step="0.1" value="2" required>
+                  <span class="hint">慢 action 的延迟秒数。</span>
                 </label>
               </div>
             </div>
@@ -585,6 +671,15 @@
           </div>
           <div class="panel-body">
             <div id="statsGrid" class="stats-grid"></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="logsTitle">
+          <div class="panel-header">
+            <h2 id="logsTitle" class="panel-title">日志</h2>
+          </div>
+          <div class="panel-body">
+            <div id="logsList" class="logs-list"></div>
           </div>
         </section>
 
@@ -705,6 +800,7 @@
     const pollTime = document.getElementById("pollTime");
     const statusDetails = document.getElementById("statusDetails");
     const statsGrid = document.getElementById("statsGrid");
+    const logsList = document.getElementById("logsList");
     const configDetails = document.getElementById("configDetails");
 
     function setMessage(text, type) {
@@ -875,6 +971,7 @@
       updateRunningState(state.lastStatus.running);
       renderStatus(state.lastStatus);
       renderStats(state.lastStatus.stats);
+      renderLogs(state.lastStatus.logs);
       renderConfig(state.lastStatus.config);
       pollTime.textContent = `刷新于 ${new Date().toLocaleTimeString()}`;
 
@@ -930,6 +1027,37 @@
       }
     }
 
+    function renderLogs(logs) {
+      logsList.textContent = "";
+
+      if (!Array.isArray(logs) || logs.length === 0) {
+        logsList.appendChild(emptyNode("暂无日志"));
+        return;
+      }
+
+      for (const log of logs) {
+        const entry = document.createElement("div");
+        entry.className = "log-entry";
+
+        const time = document.createElement("div");
+        time.className = "log-time";
+        time.textContent = formatLogField(log, "time");
+
+        const level = document.createElement("div");
+        const levelText = formatLogField(log, "level");
+        const levelClass = levelText.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+        level.className = levelClass ? `log-level ${levelClass}` : "log-level";
+        level.textContent = levelText;
+
+        const message = document.createElement("div");
+        message.className = "log-message";
+        message.textContent = formatLogField(log, "message");
+
+        entry.append(time, level, message);
+        logsList.appendChild(entry);
+      }
+    }
+
     function renderConfig(config) {
       if (!config || typeof config !== "object") {
         configDetails.textContent = "";
@@ -981,6 +1109,13 @@
       node.className = "empty";
       node.textContent = text;
       return node;
+    }
+
+    function formatLogField(log, key) {
+      if (!log || typeof log !== "object") {
+        return "-";
+      }
+      return formatValue(log[key]);
     }
 
     function formatValue(value) {

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from itertools import count
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 DEFAULT_SELF_ID = 123456789
@@ -22,6 +23,7 @@ STATS_INTERVAL_SECONDS = 1.0
 WEBUI_DEFAULT_HOST = "127.0.0.1"
 WEBUI_DEFAULT_PORT = 8765
 WEBUI_HTML_PATH = Path(__file__).with_name("webui.html")
+WEBUI_LOG_LIMIT = 200
 ONEBOT_OK_STATUS = "ok"
 ONEBOT_FAILED_STATUS = "failed"
 
@@ -114,6 +116,7 @@ class WebRunState:
     stats: RunStats | None = None
     stop_event: asyncio.Event | None = None
     config: LoadConfig | None = None
+    logs: list[dict[str, str]] = field(default_factory=list)
     error: str = ""
     exit_code: int | None = None
     stopped_by_user: bool = False
@@ -626,6 +629,18 @@ async def _handle_webui_start(request: Any) -> Any:
 
     stats = RunStats()
     stop_event = asyncio.Event()
+    state.logs.clear()
+    _append_webui_log(state, "info", "配置已接收")
+    _append_webui_log(state, "info", f"开始连接目标 URL: {_safe_log_url(config.url)}")
+    _append_webui_log(
+        state,
+        "info",
+        (
+            f"参数摘要: count={config.burst}, "
+            f"rate={config.rate:g}, "
+            f"concurrency={config.concurrency}"
+        ),
+    )
     state.task = asyncio.create_task(
         run(
             config,
@@ -642,6 +657,7 @@ async def _handle_webui_start(request: Any) -> Any:
     state.exit_code = None
     state.stopped_by_user = False
     state.task.add_done_callback(lambda task: _finish_webui_task(state, task))
+    _append_webui_log(state, "info", "任务已启动")
     return web.json_response(_webui_status_payload(state))
 
 
@@ -650,6 +666,7 @@ async def _handle_webui_stop(request: Any) -> Any:
 
     state: WebRunState = request.app["state"]
     if state.running() and state.stop_event is not None:
+        _append_webui_log(state, "info", "用户请求停止任务")
         state.stopped_by_user = True
         state.stop_event.set()
         if state.task is not None:
@@ -668,16 +685,20 @@ async def _handle_webui_status(request: Any) -> Any:
 def _finish_webui_task(state: WebRunState, task: asyncio.Task[int]) -> None:
     try:
         state.exit_code = task.result()
+        _append_webui_log(state, "info", f"任务正常结束，退出码 {state.exit_code}")
     except asyncio.CancelledError:
         if state.stopped_by_user:
             state.exit_code = 0
             state.error = ""
+            _append_webui_log(state, "info", "任务已按用户请求停止")
         elif not state.error:
             state.exit_code = None
             state.error = "任务已取消"
+            _append_webui_log(state, "warning", "任务已取消")
     except Exception as exc:
         state.exit_code = 1
-        state.error = str(exc)
+        state.error = _safe_log_message(state, str(exc))
+        _append_webui_log(state, "error", f"任务异常结束: {state.error}")
 
 
 def _webui_status_payload(state: WebRunState) -> dict[str, Any]:
@@ -689,7 +710,47 @@ def _webui_status_payload(state: WebRunState) -> dict[str, Any]:
         "exit_code": state.exit_code,
         "config": _public_config(config) if config is not None else None,
         "stats": stats.snapshot() if stats is not None else None,
+        "logs": list(state.logs),
     }
+
+
+def _append_webui_log(state: WebRunState, level: str, message: str) -> None:
+    state.logs.append(
+        {
+            "time": time.strftime("%H:%M:%S"),
+            "level": level,
+            "message": _safe_log_message(state, message),
+        }
+    )
+    if len(state.logs) > WEBUI_LOG_LIMIT:
+        del state.logs[: len(state.logs) - WEBUI_LOG_LIMIT]
+
+
+def _safe_log_message(state: WebRunState, message: str) -> str:
+    config = state.config
+    if config is None:
+        return message
+    safe_message = message.replace(config.url, _safe_log_url(config.url))
+    if config.token:
+        safe_message = safe_message.replace(config.token, "***")
+    return safe_message
+
+
+def _safe_log_url(url: str) -> str:
+    parts = urlsplit(url)
+    netloc = parts.hostname or ""
+    if parts.port is not None:
+        netloc = f"{netloc}:{parts.port}"
+    query = urlencode(
+        [
+            (
+                key,
+                "***" if "token" in key.lower() or "authorization" in key.lower() else value,
+            )
+            for key, value in parse_qsl(parts.query, keep_blank_values=True)
+        ]
+    )
+    return urlunsplit((parts.scheme, netloc, parts.path, query, parts.fragment))
 
 
 def _public_config(config: LoadConfig) -> dict[str, Any]:

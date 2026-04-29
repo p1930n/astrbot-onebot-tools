@@ -56,6 +56,10 @@ The WebUI exposes these controls:
   notice_ratio, slow_action_ratio, fail_action_ratio, action_timeout_ratio,
   slow_action_delay
 
+The right side shows live status, metrics, recent logs, and the current
+sanitized runtime configuration. Logs keep the latest 200 entries and do not
+echo the bearer token.
+
 ## Run CLI
 
 Replace the URL with the OneBot WebSocket server URL exposed by AstrBot.
