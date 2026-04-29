@@ -66,7 +66,7 @@ Replace the URL with the OneBot WebSocket server URL exposed by AstrBot.
 
 ```powershell
 python fake_onebot_ws_client.py `
-  --url ws://127.0.0.1:6199/ws `
+  --url ws://127.0.0.1:6198/ws `
   --rate 10 `
   --duration 120 `
   --groups 3 `
@@ -79,7 +79,7 @@ To target an existing AstrBot group policy, pin the source group id:
 
 ```powershell
 python fake_onebot_ws_client.py `
-  --url ws://127.0.0.1:6199/ws `
+  --url ws://127.0.0.1:6198/ws `
   --group-id 123456789 `
   --bad-ratio 0.3 `
   --bad-message "text that should match your configured rule"
@@ -89,7 +89,7 @@ If AstrBot requires a token:
 
 ```powershell
 python fake_onebot_ws_client.py `
-  --url ws://127.0.0.1:6199/ws `
+  --url ws://127.0.0.1:6198/ws `
   --token YOUR_TOKEN
 ```
 
@@ -101,26 +101,26 @@ delay between sends, and `--concurrency` controls burst concurrency.
 Baseline:
 
 ```powershell
-python fake_onebot_ws_client.py --url ws://127.0.0.1:6199/ws --rate 10 --duration 120
+python fake_onebot_ws_client.py --url ws://127.0.0.1:6198/ws --rate 10 --duration 120
 ```
 
 Short peak:
 
 ```powershell
-python fake_onebot_ws_client.py --url ws://127.0.0.1:6199/ws --rate 100 --duration 60
+python fake_onebot_ws_client.py --url ws://127.0.0.1:6198/ws --rate 100 --duration 60
 ```
 
 Burst:
 
 ```powershell
-python fake_onebot_ws_client.py --url ws://127.0.0.1:6199/ws --count 1000 --interval 0.01 --concurrency 50 --rate 0 --duration 5
+python fake_onebot_ws_client.py --url ws://127.0.0.1:6198/ws --count 1000 --interval 0.01 --concurrency 50 --rate 0 --duration 5
 ```
 
 Slow and failed actions:
 
 ```powershell
 python fake_onebot_ws_client.py `
-  --url ws://127.0.0.1:6199/ws `
+  --url ws://127.0.0.1:6198/ws `
   --rate 50 `
   --duration 60 `
   --slow-action-ratio 0.05 `
