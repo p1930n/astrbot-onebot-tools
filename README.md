@@ -31,6 +31,16 @@ python fake_onebot_ws_client.py `
   --notice-ratio 0.01
 ```
 
+To target an existing AstrBot group policy, pin the source group id:
+
+```powershell
+python fake_onebot_ws_client.py `
+  --url ws://127.0.0.1:6199/ws `
+  --group-id 123456789 `
+  --bad-ratio 0.3 `
+  --bad-message "text that should match your configured rule"
+```
+
 If AstrBot requires a token:
 
 ```powershell

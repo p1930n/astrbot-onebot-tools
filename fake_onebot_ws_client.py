@@ -31,6 +31,8 @@ class LoadConfig:
     burst: int
     groups: int
     users_per_group: int
+    group_id: int | None
+    user_id: int | None
     bad_ratio: float
     notice_ratio: float
     slow_action_ratio: float
@@ -145,9 +147,13 @@ class PayloadFactory:
         }
 
     def _group_id(self) -> int:
+        if self._config.group_id is not None:
+            return self._config.group_id
         return 100000 + random.randrange(max(self._config.groups, 1))
 
     def _user_id(self) -> int:
+        if self._config.user_id is not None:
+            return self._config.user_id
         return 200000 + random.randrange(max(self._config.users_per_group, 1))
 
 
@@ -455,6 +461,8 @@ def parse_args() -> LoadConfig:
     parser.add_argument("--burst", type=_non_negative_int, default=0)
     parser.add_argument("--groups", type=_positive_int, default=3)
     parser.add_argument("--users", type=_positive_int, default=50)
+    parser.add_argument("--group-id", type=_positive_int, default=None)
+    parser.add_argument("--user-id", type=_positive_int, default=None)
     parser.add_argument("--bad-ratio", type=_ratio, default=0.03)
     parser.add_argument("--notice-ratio", type=_ratio, default=0.01)
     parser.add_argument("--slow-action-ratio", type=_ratio, default=0.0)
@@ -473,6 +481,8 @@ def parse_args() -> LoadConfig:
         burst=args.burst,
         groups=args.groups,
         users_per_group=args.users,
+        group_id=args.group_id,
+        user_id=args.user_id,
         bad_ratio=args.bad_ratio,
         notice_ratio=args.notice_ratio,
         slow_action_ratio=args.slow_action_ratio,
