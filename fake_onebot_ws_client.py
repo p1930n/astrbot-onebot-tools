@@ -26,6 +26,10 @@ WEBUI_HTML_PATH = Path(__file__).with_name("webui.html")
 WEBUI_LOG_LIMIT = 200
 ONEBOT_OK_STATUS = "ok"
 ONEBOT_FAILED_STATUS = "failed"
+MESSAGE_ID_START_MIN = 100_000
+MESSAGE_ID_START_MAX = 900_000_000
+NOTICE_ID_OFFSET = 50_000_000
+ACTION_MESSAGE_ID_OFFSET = 100_000_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,8 +132,9 @@ class WebRunState:
 class PayloadFactory:
     def __init__(self, config: LoadConfig) -> None:
         self._config = config
-        self._message_ids = count(100000)
-        self._notice_ids = count(900000)
+        message_id_start = random.randrange(MESSAGE_ID_START_MIN, MESSAGE_ID_START_MAX)
+        self._message_ids = count(message_id_start)
+        self._notice_ids = count(message_id_start + NOTICE_ID_OFFSET)
 
     def next_event(self) -> dict[str, Any]:
         if random.random() < self._config.notice_ratio:
@@ -204,7 +209,8 @@ class ActionResponder:
     def __init__(self, config: LoadConfig, stats: RunStats) -> None:
         self._config = config
         self._stats = stats
-        self._message_ids = count(700000)
+        message_id_start = random.randrange(MESSAGE_ID_START_MIN, MESSAGE_ID_START_MAX)
+        self._message_ids = count(message_id_start + ACTION_MESSAGE_ID_OFFSET)
 
     async def respond(self, ws: Any, request: dict[str, Any]) -> None:
         action = str(request.get("action") or "")
