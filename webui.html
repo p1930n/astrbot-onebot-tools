@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OneBot QQ 输入压测 WebUI</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface-strong: #eef3f8;
+      --border: #d8e0ea;
+      --border-strong: #b7c4d4;
+      --text: #172033;
+      --muted: #667085;
+      --primary: #1f6feb;
+      --primary-strong: #1557be;
+      --danger: #c93535;
+      --danger-bg: #fff1f0;
+      --success: #147d55;
+      --success-bg: #e8f7ef;
+      --warning: #a05a00;
+      --warning-bg: #fff4db;
+      --shadow: 0 10px 25px rgb(16 24 40 / 8%);
+      --radius: 8px;
+      font-family:
+        "Microsoft YaHei",
+        "PingFang SC",
+        "Segoe UI",
+        system-ui,
+        sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1440px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .status-badge.running {
+      border-color: #8bd0ad;
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .status-badge.stopped {
+      border-color: var(--border);
+      background: var(--surface-strong);
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.9fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 48px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-strong);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .form-section + .form-section {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #344054;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.full {
+      grid-template-columns: 1fr;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: #ffffff;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input {
+      height: 36px;
+      padding: 7px 9px;
+    }
+
+    textarea {
+      min-height: 78px;
+      resize: vertical;
+      padding: 8px 9px;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgb(31 111 235 / 14%);
+    }
+
+    input:disabled,
+    textarea:disabled {
+      background: #f2f4f7;
+      color: #667085;
+      cursor: not-allowed;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 94px;
+      height: 38px;
+      padding: 0 14px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: var(--primary);
+      color: #ffffff;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--primary-strong);
+    }
+
+    .btn.secondary {
+      border-color: var(--border-strong);
+      background: #ffffff;
+      color: #344054;
+    }
+
+    .btn.secondary:hover:not(:disabled) {
+      border-color: #98a2b3;
+      background: #f8fafc;
+    }
+
+    .btn.danger {
+      background: var(--danger);
+    }
+
+    .btn.danger:hover:not(:disabled) {
+      background: #a92727;
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .notice {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface-strong);
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .notice.show {
+      display: block;
+    }
+
+    .notice.error {
+      border-color: #f0a7a7;
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    .notice.warning {
+      border-color: #efc066;
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 72px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fbfcfe;
+    }
+
+    .metric-label {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric-value {
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 750;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .details {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .kv-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 0.42fr) minmax(0, 1fr);
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .kv-row:last-child {
+      border-bottom: 0;
+    }
+
+    .kv-key {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .kv-value {
+      color: var(--text);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .poll-time {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1040px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .side-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100vw - 20px, 720px);
+        padding-top: 12px;
+      }
+
+      .topbar,
+      .title {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      h1 {
+        white-space: normal;
+      }
+
+      .grid,
+      .grid.two,
+      .side-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kv-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="title">
+        <h1>OneBot QQ 输入压测</h1>
+        <span class="subtitle">模拟 QQ 群输入事件</span>
+      </div>
+      <span id="runningBadge" class="status-badge stopped">未运行</span>
+    </header>
+
+    <div id="messageBox" class="notice" aria-live="polite"></div>
+
+    <div class="layout">
+      <section class="panel" aria-labelledby="formTitle">
+        <div class="panel-header">
+          <h2 id="formTitle" class="panel-title">启动参数</h2>
+        </div>
+        <div class="panel-body">
+          <form id="loadForm" autocomplete="off">
+            <div class="form-section">
+              <h3 class="section-title">连接信息</h3>
+              <div class="grid">
+                <label>
+                  OneBot WS URL
+                  <input id="url" name="url" type="url" value="ws://127.0.0.1:6199/ws" required>
+                </label>
+                <label>
+                  Token
+                  <input id="token" name="token" type="text" value="" placeholder="留空表示不使用 Token">
+                </label>
+                <label>
+                  机器人 self_id
+                  <input id="self_id" name="self_id" type="number" min="1" step="1" value="123456789" required>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3 class="section-title">QQ 来源</h3>
+              <div class="grid two">
+                <label>
+                  QQ(user_id)
+                  <input id="user_id" name="user_id" type="number" min="1" step="1" placeholder="留空则从用户池生成">
+                </label>
+                <label>
+                  QQ群(group_id)
+                  <input id="group_id" name="group_id" type="number" min="1" step="1" placeholder="留空则从群池生成">
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3 class="section-title">发送内容</h3>
+              <div class="grid two">
+                <label>
+                  发送内容 message
+                  <textarea id="message" name="message" required>hello from onebot qq input load test</textarea>
+                </label>
+                <label>
+                  坏消息内容 bad_message
+                  <textarea id="bad_message" name="bad_message" required>blocked text from onebot qq input load test</textarea>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3 class="section-title">发送控制</h3>
+              <div class="grid">
+                <label>
+                  发送次数 count
+                  <input id="count" name="count" type="number" min="0" step="1" value="1" required>
+                  <span class="hint">0 表示不按次数发送，可配合 rate/duration 持续压测</span>
+                </label>
+                <label>
+                  发送间隔 interval
+                  <input id="interval" name="interval" type="number" min="0" step="0.001" value="0" required>
+                  <span class="hint">每个并发 worker 的间隔秒数</span>
+                </label>
+                <label>
+                  并发/线程 concurrency
+                  <input id="concurrency" name="concurrency" type="number" min="1" step="1" value="1" required>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3 class="section-title">调试参数</h3>
+              <div class="grid">
+                <label>
+                  rate
+                  <input id="rate" name="rate" type="number" min="0" step="0.1" value="0" required>
+                </label>
+                <label>
+                  duration
+                  <input id="duration" name="duration" type="number" min="0" step="0.1" value="0" required>
+                </label>
+                <label>
+                  groups
+                  <input id="groups" name="groups" type="number" min="1" step="1" value="3" required>
+                </label>
+                <label>
+                  users
+                  <input id="users" name="users" type="number" min="1" step="1" value="50" required>
+                </label>
+                <label>
+                  bad_ratio
+                  <input id="bad_ratio" name="bad_ratio" type="number" min="0" max="1" step="0.01" value="0.03" required>
+                </label>
+                <label>
+                  notice_ratio
+                  <input id="notice_ratio" name="notice_ratio" type="number" min="0" max="1" step="0.01" value="0.01" required>
+                </label>
+                <label>
+                  slow_action_ratio
+                  <input id="slow_action_ratio" name="slow_action_ratio" type="number" min="0" max="1" step="0.01" value="0" required>
+                </label>
+                <label>
+                  fail_action_ratio
+                  <input id="fail_action_ratio" name="fail_action_ratio" type="number" min="0" max="1" step="0.01" value="0" required>
+                </label>
+                <label>
+                  action_timeout_ratio
+                  <input id="action_timeout_ratio" name="action_timeout_ratio" type="number" min="0" max="1" step="0.01" value="0" required>
+                </label>
+                <label>
+                  slow_action_delay
+                  <input id="slow_action_delay" name="slow_action_delay" type="number" min="0" step="0.1" value="2" required>
+                </label>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button id="startBtn" class="btn" type="submit">开始</button>
+              <button id="stopBtn" class="btn danger" type="button" disabled>停止</button>
+              <button id="refreshBtn" class="btn secondary" type="button">刷新状态</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <div class="side-stack">
+        <section class="panel" aria-labelledby="statusTitle">
+          <div class="panel-header">
+            <h2 id="statusTitle" class="panel-title">实时状态</h2>
+            <span id="pollTime" class="poll-time">尚未刷新</span>
+          </div>
+          <div class="panel-body">
+            <div id="statusDetails" class="details"></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="statsTitle">
+          <div class="panel-header">
+            <h2 id="statsTitle" class="panel-title">统计</h2>
+          </div>
+          <div class="panel-body">
+            <div id="statsGrid" class="stats-grid"></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="configTitle">
+          <div class="panel-header">
+            <h2 id="configTitle" class="panel-title">当前配置</h2>
+          </div>
+          <div class="panel-body">
+            <div id="configDetails" class="details"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API = {
+      start: "/api/start",
+      stop: "/api/stop",
+      status: "/api/status",
+    };
+
+    const state = {
+      running: false,
+      pending: false,
+      lastStatus: null,
+    };
+
+    const fieldSpecs = [
+      { name: "url", type: "string", required: true },
+      { name: "token", type: "string" },
+      { name: "self_id", type: "int", required: true, min: 1 },
+      { name: "group_id", type: "optionalInt", min: 1 },
+      { name: "user_id", type: "optionalInt", min: 1 },
+      { name: "message", type: "string", required: true },
+      { name: "bad_message", type: "string", required: true },
+      { name: "count", type: "int", required: true, min: 0 },
+      { name: "interval", type: "number", required: true, min: 0 },
+      { name: "concurrency", type: "int", required: true, min: 1 },
+      { name: "rate", type: "number", required: true, min: 0 },
+      { name: "duration", type: "number", required: true, min: 0 },
+      { name: "groups", type: "int", required: true, min: 1 },
+      { name: "users", type: "int", required: true, min: 1 },
+      { name: "bad_ratio", type: "number", required: true, min: 0, max: 1 },
+      { name: "notice_ratio", type: "number", required: true, min: 0, max: 1 },
+      { name: "slow_action_ratio", type: "number", required: true, min: 0, max: 1 },
+      { name: "fail_action_ratio", type: "number", required: true, min: 0, max: 1 },
+      { name: "action_timeout_ratio", type: "number", required: true, min: 0, max: 1 },
+      { name: "slow_action_delay", type: "number", required: true, min: 0 },
+    ];
+
+    const labels = {
+      running: "运行状态",
+      error: "错误",
+      config: "当前配置",
+      stats: "统计",
+      exit_code: "退出码",
+      url: "OneBot WS URL",
+      token: "Token",
+      self_id: "机器人 self_id",
+      group_id: "QQ群(group_id)",
+      user_id: "QQ(user_id)",
+      message: "发送内容",
+      bad_message: "坏消息内容",
+      count: "发送次数",
+      interval: "发送间隔",
+      concurrency: "并发/线程",
+      rate: "rate",
+      duration: "duration",
+      groups: "groups",
+      users: "users",
+      bad_ratio: "bad_ratio",
+      notice_ratio: "notice_ratio",
+      slow_action_ratio: "slow_action_ratio",
+      fail_action_ratio: "fail_action_ratio",
+      action_timeout_ratio: "action_timeout_ratio",
+      slow_action_delay: "slow_action_delay",
+      started_at: "开始时间",
+      elapsed_seconds: "已运行秒数",
+      event_rate: "事件速率",
+      sent_events: "已发送事件",
+      sent_messages: "已发送消息",
+      sent_notices: "已发送通知",
+      sent_bad_messages: "坏消息数",
+      received_actions: "收到动作",
+      responded_actions: "已响应动作",
+      failed_actions: "失败动作",
+      slow_actions: "慢动作",
+      dropped_actions: "丢弃动作",
+      unknown_actions: "未知动作",
+      send_errors: "发送错误",
+      receive_errors: "接收错误",
+    };
+
+    const metricOrder = [
+      "sent_events",
+      "sent_messages",
+      "sent_notices",
+      "sent_bad_messages",
+      "received_actions",
+      "responded_actions",
+      "failed_actions",
+      "slow_actions",
+      "dropped_actions",
+      "unknown_actions",
+      "send_errors",
+      "receive_errors",
+      "event_rate",
+      "elapsed_seconds",
+    ];
+
+    const form = document.getElementById("loadForm");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const messageBox = document.getElementById("messageBox");
+    const runningBadge = document.getElementById("runningBadge");
+    const pollTime = document.getElementById("pollTime");
+    const statusDetails = document.getElementById("statusDetails");
+    const statsGrid = document.getElementById("statsGrid");
+    const configDetails = document.getElementById("configDetails");
+
+    function setMessage(text, type) {
+      messageBox.textContent = text || "";
+      messageBox.className = "notice";
+      if (!text) {
+        return;
+      }
+      messageBox.classList.add("show");
+      if (type) {
+        messageBox.classList.add(type);
+      }
+    }
+
+    function getField(name) {
+      return form.elements[name];
+    }
+
+    function parseValue(spec) {
+      const element = getField(spec.name);
+      const raw = element.value.trim();
+
+      if (spec.required && raw === "") {
+        throw new Error(`${labels[spec.name] || spec.name} 不能为空`);
+      }
+
+      if (spec.type === "string") {
+        return raw;
+      }
+
+      if (spec.type === "optionalInt") {
+        if (raw === "") {
+          return null;
+        }
+        return parseNumeric(spec, raw, true);
+      }
+
+      return parseNumeric(spec, raw, spec.type === "int");
+    }
+
+    function parseNumeric(spec, raw, integerOnly) {
+      const label = labels[spec.name] || spec.name;
+      const value = Number(raw);
+
+      if (!Number.isFinite(value)) {
+        throw new Error(`${label} 必须是数字`);
+      }
+
+      if (integerOnly && !Number.isInteger(value)) {
+        throw new Error(`${label} 必须是整数`);
+      }
+
+      if (typeof spec.min === "number" && value < spec.min) {
+        throw new Error(`${label} 不能小于 ${spec.min}`);
+      }
+
+      if (typeof spec.max === "number" && value > spec.max) {
+        throw new Error(`${label} 不能大于 ${spec.max}`);
+      }
+
+      return value;
+    }
+
+    function collectPayload() {
+      const payload = {};
+      for (const spec of fieldSpecs) {
+        payload[spec.name] = parseValue(spec);
+      }
+      return payload;
+    }
+
+    function setPending(pending) {
+      state.pending = pending;
+      updateButtons();
+    }
+
+    function updateButtons() {
+      startBtn.disabled = state.pending || state.running;
+      stopBtn.disabled = state.pending || !state.running;
+      refreshBtn.disabled = state.pending;
+    }
+
+    function updateRunningState(running) {
+      state.running = Boolean(running);
+      runningBadge.textContent = state.running ? "运行中" : "未运行";
+      runningBadge.classList.toggle("running", state.running);
+      runningBadge.classList.toggle("stopped", !state.running);
+      updateButtons();
+    }
+
+    async function requestJson(url, options) {
+      const response = await fetch(url, options);
+      const contentType = response.headers.get("content-type") || "";
+      let data = null;
+
+      if (contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = text ? { error: text } : {};
+      }
+
+      if (!response.ok) {
+        const errorText = data && data.error ? data.error : `${response.status} ${response.statusText}`;
+        throw new Error(errorText);
+      }
+
+      return data || {};
+    }
+
+    async function startRun(event) {
+      event.preventDefault();
+      let payload;
+
+      try {
+        payload = collectPayload();
+      } catch (error) {
+        setMessage(error.message, "error");
+        return;
+      }
+
+      setPending(true);
+      setMessage("", "");
+
+      try {
+        const data = await requestJson(API.start, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        applyStatus(data);
+        await refreshStatus(false);
+      } catch (error) {
+        setMessage(`启动失败：${error.message}`, "error");
+      } finally {
+        setPending(false);
+      }
+    }
+
+    async function stopRun() {
+      setPending(true);
+      setMessage("", "");
+
+      try {
+        const data = await requestJson(API.stop, { method: "POST" });
+        applyStatus(data);
+        await refreshStatus(false);
+      } catch (error) {
+        setMessage(`停止失败：${error.message}`, "error");
+      } finally {
+        setPending(false);
+      }
+    }
+
+    async function refreshStatus(showNetworkError = true) {
+      try {
+        const data = await requestJson(API.status, { method: "GET" });
+        applyStatus(data);
+      } catch (error) {
+        if (showNetworkError) {
+          setMessage(`状态刷新失败：${error.message}`, "warning");
+        }
+      }
+    }
+
+    function applyStatus(data) {
+      state.lastStatus = data || {};
+      updateRunningState(state.lastStatus.running);
+      renderStatus(state.lastStatus);
+      renderStats(state.lastStatus.stats);
+      renderConfig(state.lastStatus.config);
+      pollTime.textContent = `刷新于 ${new Date().toLocaleTimeString()}`;
+
+      if (state.lastStatus.error) {
+        setMessage(String(state.lastStatus.error), "error");
+      } else if (messageBox.classList.contains("error") || messageBox.classList.contains("warning")) {
+        setMessage("", "");
+      }
+    }
+
+    function renderStatus(status) {
+      const rows = {
+        running: status.running ? "运行中" : "未运行",
+        exit_code: status.exit_code ?? "",
+        error: status.error || "",
+      };
+      renderKeyValues(statusDetails, rows, ["running", "exit_code", "error"]);
+    }
+
+    function renderStats(stats) {
+      statsGrid.textContent = "";
+      if (!stats || typeof stats !== "object") {
+        statsGrid.appendChild(emptyNode("暂无统计数据"));
+        return;
+      }
+
+      const keys = metricOrder.filter((key) => Object.prototype.hasOwnProperty.call(stats, key));
+      for (const key of Object.keys(stats)) {
+        if (!keys.includes(key)) {
+          keys.push(key);
+        }
+      }
+
+      if (keys.length === 0) {
+        statsGrid.appendChild(emptyNode("暂无统计数据"));
+        return;
+      }
+
+      for (const key of keys) {
+        const item = document.createElement("div");
+        item.className = "metric";
+
+        const label = document.createElement("div");
+        label.className = "metric-label";
+        label.textContent = labels[key] || key;
+
+        const value = document.createElement("div");
+        value.className = "metric-value";
+        value.textContent = formatValue(stats[key]);
+
+        item.append(label, value);
+        statsGrid.appendChild(item);
+      }
+    }
+
+    function renderConfig(config) {
+      if (!config || typeof config !== "object") {
+        configDetails.textContent = "";
+        configDetails.appendChild(emptyNode("暂无运行配置"));
+        return;
+      }
+
+      const ordered = fieldSpecs.map((spec) => spec.name).filter((key) => key in config);
+      for (const key of Object.keys(config)) {
+        if (!ordered.includes(key)) {
+          ordered.push(key);
+        }
+      }
+      renderKeyValues(configDetails, config, ordered);
+    }
+
+    function renderKeyValues(container, data, orderedKeys) {
+      container.textContent = "";
+      let rendered = 0;
+
+      for (const key of orderedKeys) {
+        if (!Object.prototype.hasOwnProperty.call(data, key)) {
+          continue;
+        }
+
+        const row = document.createElement("div");
+        row.className = "kv-row";
+
+        const keyNode = document.createElement("div");
+        keyNode.className = "kv-key";
+        keyNode.textContent = labels[key] || key;
+
+        const valueNode = document.createElement("div");
+        valueNode.className = "kv-value";
+        valueNode.textContent = formatValue(data[key]);
+
+        row.append(keyNode, valueNode);
+        container.appendChild(row);
+        rendered += 1;
+      }
+
+      if (rendered === 0) {
+        container.appendChild(emptyNode("暂无数据"));
+      }
+    }
+
+    function emptyNode(text) {
+      const node = document.createElement("div");
+      node.className = "empty";
+      node.textContent = text;
+      return node;
+    }
+
+    function formatValue(value) {
+      if (value === null || value === undefined || value === "") {
+        return "-";
+      }
+
+      if (typeof value === "number") {
+        if (Number.isInteger(value)) {
+          return String(value);
+        }
+        return String(Math.round(value * 1000) / 1000);
+      }
+
+      if (typeof value === "boolean") {
+        return value ? "是" : "否";
+      }
+
+      if (typeof value === "object") {
+        return JSON.stringify(value, null, 2);
+      }
+
+      return String(value);
+    }
+
+    form.addEventListener("submit", startRun);
+    stopBtn.addEventListener("click", stopRun);
+    refreshBtn.addEventListener("click", () => refreshStatus(true));
+
+    updateButtons();
+    refreshStatus(false);
+    window.setInterval(() => refreshStatus(false), 1000);
+  </script>
+</body>
+</html>
